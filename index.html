@@ -24,10 +24,8 @@
 <div class="auth-card">
     <div class="text-center mb-4">
         <div class="mb-3">
-            <img src="it.jpeg" alt="Logo" width="64" height="64" 
-                 class="rounded-3 shadow-sm object-fit-cover border">
+            <img src="it.jpeg" alt="Logo" width="64" height="64" class="rounded-3 shadow-sm object-fit-cover border">
         </div>
-        
         <h3 class="fw-bold" id="auth-title">Welcome Back</h3>
         <p class="text-muted small" id="auth-subtitle">Login to access your CSS modules</p>
     </div>
@@ -55,7 +53,7 @@
 </div>
 
 <script>
-    // Ensure this URL ends in /exec
+    // 1. Double check this URL. It must be the LATEST deployment.
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRQLtU9RL1VpmqoGTvIkYvgTvDe1fVnlNZzcPTvd_gjqOKVDrUewAs2ZQyo66xo3RB/exec"; 
     let isLogin = true;
 
@@ -70,10 +68,7 @@
     toggleBtn.addEventListener('click', () => {
         isLogin = !isLogin;
         nameField.classList.toggle('hidden');
-        
-        // Handle 'required' attribute so login doesn't fail due to empty name
         nameInput.required = !isLogin; 
-
         title.innerText = isLogin ? "Welcome Back" : "Create Account";
         subtitle.innerText = isLogin ? "Login to access your CSS modules" : "Create a new account to start learning CSS";
         submitBtn.innerText = isLogin ? "Login" : "Register";
@@ -93,25 +88,30 @@
         };
 
         try {
-            // We use a simple POST. Google Apps Script requires a redirect follow.
+            // FIX: Using text/plain content type helps avoid CORS preflight issues with Google Scripts
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
+                mode: 'cors', 
                 body: JSON.stringify(payload)
             });
 
             const result = await response.text();
 
-            if (result === "Success") {
-                alert(isLogin ? "Login successful!" : "Registration successful!");
-                window.location.href = isLogin ? "home.html" : "index.html";
+            if (result.trim() === "Success") {
+                alert(isLogin ? "Login successful!" : "Registration successful! You can now login.");
+                if (isLogin) {
+                    // Make sure home.html exists in your repository!
+                    window.location.href = "home.html"; 
+                } else {
+                    location.reload();
+                }
             } else {
-                // This will now show "Account Not Found" or "Wrong Password"
                 alert("Auth Error: " + result); 
             }
 
         } catch (error) {
-            console.error(error);
-            alert("Connection error. Check your Script deployment settings.");
+            console.error("Fetch Error:", error);
+            alert("Connection error. Ensure your Google Script is deployed as 'Anyone'.");
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = isLogin ? "Login" : "Register";
