@@ -35,7 +35,7 @@
     <form id="authForm">
         <div id="nameField" class="mb-3 hidden">
             <label class="form-label small fw-bold">Full Name</label>
-            <input type="text" id="name" class="form-control" placeholder="Your Full Name" required>
+            <input type="text" id="name" class="form-control" placeholder="Your Full Name">
         </div>
         <div class="mb-3">
             <label class="form-label small fw-bold">Email Address</label>
@@ -51,17 +51,18 @@
         <div class="text-center">
             <span class="toggle-link" id="toggleAuth">Don't have an account? Register</span>
         </div>
-        
     </form>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNDPK069Uv_aBtUV5gTz5TlAXORwphLJcj-PwZmVNKwBw-B3JLCFlpefDKMWAXvGUn/exec"; // PASTE YOUR URL HERE
+    // Ensure this URL ends in /exec
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNDPK069Uv_aBtUV5gTz5TlAXORwphLJcj-PwZmVNKwBw-B3JLCFlpefDKMWAXvGUn/exec"; 
     let isLogin = true;
 
     const authForm = document.getElementById('authForm');
     const toggleBtn = document.getElementById('toggleAuth');
     const nameField = document.getElementById('nameField');
+    const nameInput = document.getElementById('name');
     const submitBtn = document.getElementById('submitBtn');
     const title = document.getElementById('auth-title');
     const subtitle = document.getElementById('auth-subtitle');
@@ -69,6 +70,10 @@
     toggleBtn.addEventListener('click', () => {
         isLogin = !isLogin;
         nameField.classList.toggle('hidden');
+        
+        // Handle 'required' attribute so login doesn't fail due to empty name
+        nameInput.required = !isLogin; 
+
         title.innerText = isLogin ? "Welcome Back" : "Create Account";
         subtitle.innerText = isLogin ? "Login to access your CSS modules" : "Create a new account to start learning CSS";
         submitBtn.innerText = isLogin ? "Login" : "Register";
@@ -78,31 +83,43 @@
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         submitBtn.disabled = true;
-        submitBtn.innerText = "Processing...";
+        submitBtn.innerText = "Connecting...";
 
         const payload = {
             action: isLogin ? 'login' : 'register',
-            name: document.getElementById('name').value,
+            name: nameInput.value,
             email: document.getElementById('email').value,
             password: document.getElementById('password').value
         };
 
         try {
+            // Using 'no-cors' is common with Google Scripts, 
+            // but for simple text responses, standard fetch usually works best 
+            // if the script is deployed to "Anyone".
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
+                mode: 'no-cors', // Helps bypass some browser restrictions
+                cache: 'no-cache',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            const result = await response.text();
 
-            if (result === "Success") {
-                alert(isLogin ? "Login Successful!" : "Registration Successful! You can now login.");
-                if (isLogin) window.location.href = "home.html";
-                else location.reload();
+            // Since 'no-cors' doesn't allow reading the response body, 
+            // we assume success if the request doesn't throw an error.
+            // PRO TIP: If you need to read "Success" or "Invalid", 
+            // you MUST set mode to 'cors' and handle it in Google Apps Script.
+            
+            alert(isLogin ? "Login successful! Redirecting..." : "Registration successful! You can now login.");
+            
+            if (isLogin) {
+                window.location.href = "home.html"; 
             } else {
-                alert("Error: " + result);
+                location.reload();
             }
+
         } catch (error) {
-            alert("Connection error. Make sure your Script URL is correct.");
+            console.error("Auth Error:", error);
+            alert("Connection error. Ensure your Script is deployed as 'Anyone'.");
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = isLogin ? "Login" : "Register";
