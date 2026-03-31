@@ -56,7 +56,7 @@
 
 <script>
     // Ensure this URL ends in /exec
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNDPK069Uv_aBtUV5gTz5TlAXORwphLJcj-PwZmVNKwBw-B3JLCFlpefDKMWAXvGUn/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRQLtU9RL1VpmqoGTvIkYvgTvDe1fVnlNZzcPTvd_gjqOKVDrUewAs2ZQyo66xo3RB/exec"; 
     let isLogin = true;
 
     const authForm = document.getElementById('authForm');
@@ -83,7 +83,7 @@
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         submitBtn.disabled = true;
-        submitBtn.innerText = "Connecting...";
+        submitBtn.innerText = "Verifying...";
 
         const payload = {
             action: isLogin ? 'login' : 'register',
@@ -93,33 +93,25 @@
         };
 
         try {
-            // Using 'no-cors' is common with Google Scripts, 
-            // but for simple text responses, standard fetch usually works best 
-            // if the script is deployed to "Anyone".
+            // We use a simple POST. Google Apps Script requires a redirect follow.
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Helps bypass some browser restrictions
-                cache: 'no-cache',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            // Since 'no-cors' doesn't allow reading the response body, 
-            // we assume success if the request doesn't throw an error.
-            // PRO TIP: If you need to read "Success" or "Invalid", 
-            // you MUST set mode to 'cors' and handle it in Google Apps Script.
-            
-            alert(isLogin ? "Login successful! Redirecting..." : "Registration successful! You can now login.");
-            
-            if (isLogin) {
-                window.location.href = "home.html"; 
+            const result = await response.text();
+
+            if (result === "Success") {
+                alert(isLogin ? "Login successful!" : "Registration successful!");
+                window.location.href = isLogin ? "home.html" : "auth.html";
             } else {
-                location.reload();
+                // This will now show "Account Not Found" or "Wrong Password"
+                alert("Auth Error: " + result); 
             }
 
         } catch (error) {
-            console.error("Auth Error:", error);
-            alert("Connection error. Ensure your Script is deployed as 'Anyone'.");
+            console.error(error);
+            alert("Connection error. Check your Script deployment settings.");
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = isLogin ? "Login" : "Register";
